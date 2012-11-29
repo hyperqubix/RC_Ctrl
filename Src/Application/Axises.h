@@ -8,7 +8,17 @@
 #ifndef AXISES_H_
 #define AXISES_H_
 
-void AXISES_Init();
-void AXISES_Update();
+#include <stdint.h>
+#include "BSP.h"
+#include "RC_Core.h"
+
+// This struct identifies the "public" functions
+typedef struct AXISES_t
+{
+	void (*Init)(void);
+	void (*Update)(void);
+}AXISES_t;
+
+void AXISES_Constructor(AXISES_t *Axises_Obj);
 
 #endif /* AXISES_H_ */

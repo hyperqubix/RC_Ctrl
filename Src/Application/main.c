@@ -1,30 +1,35 @@
-
-#include <stm32f10x_adc.h>
-#include <stm32f10x_dma.h>
-#include <stm32f10x_rcc.h>
-#include <stm32f10x_gpio.h>
-#include <stm32f10x_tim.h>
-#include <misc.h>
-
-#include "stm32f10x_it.h"
 #include "main.h"
 #include "RC_Core.h"
 #include "HAL.h"
 #include "Axises.h"
 
 
+AXISES_t Axises;
+HAL_t Hal;
+RC_CORE_t RC_Core;
+
+
+// Mappings of interrupts
+void TIM4_IRQHandler(void)
+{
+	Hal.IRQ_PPM();
+}
+
 
 void Init()
 {
-  HAL_Init();
-  AXISES_Init();
+  // IMPORTANT! IRQ's must NOT be enabled before the constructors are called
+  AXISES_Constructor(&Axises);
+  HAL_Constructor(&Hal);
+  RC_CORE_Constructor(&RC_Core);
+
+  Hal.Init();
+  Axises.Init();
   return;
 }
 
 void Update()
 {
-	HAL_Update();
-	AXISES_Update();
 
 	return;
 }
@@ -33,8 +38,7 @@ int main()
 {
   Init();
 
-  while(1)
-  {
-    Update();
-  }
+  RC_Core.MainLoop();
+
+  return 0;
 }

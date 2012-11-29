@@ -5,16 +5,29 @@
  *      Author: eskelund
  */
 #include <stdint.h>
-#include <stm32f10x_adc.h>
-#include <stm32f10x_dma.h>
-#include <stm32f10x_rcc.h>
-#include <stm32f10x_gpio.h>
-#include <stm32f10x_tim.h>
-#include <misc.h>
 
 #include "HAL.h"
 #include "Default_Setup.h"
 #include "RC_Core.h"
+
+
+#define LOCKUP while(1){};
+
+void NMI_Handler(void){LOCKUP}
+void HardFault_Handler(void){LOCKUP}
+void MemManage_Handler(void){LOCKUP}
+void BusFault_Handler(void){LOCKUP}
+void UsageFault_Handler(void){LOCKUP}
+void DebugMon_Handler(void){LOCKUP}
+void SVC_Handler(void){LOCKUP}
+void PendSV_Handler(void){LOCKUP}
+void SysTick_Handler(void){LOCKUP}
+
+void ADC1_IRQHandler(void)
+{
+  ADC_ClearITPendingBit(ADC1, ADC_IT_EOC);
+}
+
 
 static void Init_NVIC();
 static void Init_CoreSys();
@@ -22,11 +35,12 @@ static void Init_DMA_ADC();
 static void Init_GPIO();
 static void Init_PPMTimer();
 static void UpdateADCValues();
+static void UpdateAxisReversals();
 
 SYSTEM_STATUS_t System_Status;
 static ADC_MEASUREMENT_t ADC_Measurement;
 
-void HAL_PPM_IRQ(void)
+void IRQ_PPM(void)
 {
   static uint16_t State=0;
   static uint16_t Channel=0;
@@ -299,36 +313,66 @@ static void UpdateADCValues()
     // We now have a value between 0-1000
     System_Status.Axis_Value[cnt]=TmpCalc;
 
-//    TmpCalc += 500; // Add minimum pulse width
-//    TmpCalc=TmpCalc/1000;
-
-
-
-//    System_Status.PPM_ChTime[cnt]=TmpCalc;
 	}
 
 	return;
 }
 
-void HAL_Update()
+static void UpdateAxisReversals()
+{
+	System_Status.AxisReversal[0] = GPIO_ReadInputDataBit(SWITCH_REV_PORT0, SWITCH_REV_PIN0);
+	System_Status.AxisReversal[1] = GPIO_ReadInputDataBit(SWITCH_REV_PORT1, SWITCH_REV_PIN1);
+	System_Status.AxisReversal[2] = GPIO_ReadInputDataBit(SWITCH_REV_PORT2, SWITCH_REV_PIN2);
+	System_Status.AxisReversal[3] = GPIO_ReadInputDataBit(SWITCH_REV_PORT3, SWITCH_REV_PIN3);
+	System_Status.AxisReversal[4] = GPIO_ReadInputDataBit(SWITCH_REV_PORT4, SWITCH_REV_PIN4);
+	System_Status.AxisReversal[5] = GPIO_ReadInputDataBit(SWITCH_REV_PORT5, SWITCH_REV_PIN5);
+	System_Status.AxisReversal[6] = GPIO_ReadInputDataBit(SWITCH_REV_PORT6, SWITCH_REV_PIN6);
+	System_Status.AxisReversal[7] = GPIO_ReadInputDataBit(SWITCH_REV_PORT7, SWITCH_REV_PIN7);
+
+  return;
+}
+
+static void Update()
 {
 	UpdateADCValues();
+	UpdateAxisReversals();
 
 	return;
 }
 
-void HAL_Init()
-{
-  Init_CoreSys();
-  Init_NVIC();
-  Init_DMA_ADC();
-  Init_ADC();
-  Init_PPMTimer();
 
-  RC_Core_Init();
+static void Init()
+{
+	uint16_t cnt;
+
+	for(cnt=0;cnt<8;cnt++)
+	{
+		System_Status.Axis_Value[cnt]=0;
+		System_Status.AxisReversal[cnt]=0;
+		System_Status.PPM_ChTime[cnt]=1250; // Middle position
+		System_Status.ChannelMap[cnt]=cnt;
+	}
+
+	Init_CoreSys();
+	Init_NVIC();
+	Init_DMA_ADC();
+	Init_ADC();
+	Init_PPMTimer();
 
   // All is set up. Liven the board up :-)
   Init_GPIO();
 
   return;
 }
+
+void HAL_Constructor(HAL_t *Hal_Obj)
+{
+
+	Hal_Obj->IRQ_PPM=&IRQ_PPM;
+	Hal_Obj->Init=&Init;
+	Hal_Obj->Update=&Update;
+
+	return;
+}
+
+

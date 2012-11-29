@@ -40,7 +40,6 @@ stm32f10x_adc.c \
 stm32f10x_tim.c \
 stm32f10x_dma.c \
 system_stm32f10x.c \
-stm32f10x_it.c \
 misc.c
 
 # Autogenerate object files 

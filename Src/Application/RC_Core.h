@@ -1,6 +1,19 @@
+
+#ifndef RC_CORE_H_
+#define RC_CORE_H_
+
 #include <stdint.h>
 
 
-void RC_Core_Init();
-uint16_t RC_Core_GetChannelTiming(uint8_t ChNum);
-void RC_Core_Update();
+
+// This struct identifies the "public" functions
+typedef struct RC_CORE_t
+{
+	void (*Init)(void);
+	void (*Update)(void);
+	void (*MainLoop)(void);
+}RC_CORE_t;
+
+void RC_CORE_Constructor(RC_CORE_t *RC_Core_Obj);
+
+#endif // RC_CORE_H_
